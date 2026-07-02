@@ -1,0 +1,33 @@
+potential    nep.txt
+velocity     300
+
+# x-direction NEMD for FAPbI3, CH5N2PbI3
+# model.xyz: 61 x 15 x 15 primitive cells, group:I:1
+# group 0: fixed barrier, 1 x-cell
+# group 1: heat source, 12 x-cells
+# groups 2-7: interior slabs, 6 x-cells each
+# group 4: central SHC slab
+# group 8: heat sink, 12 x-cells
+
+# Equilibration; 2,000,000 x 0.25 fs = 0.5 ns.
+time_step    0.25
+fix          0
+ensemble     nvt_nhc 300 300 2000
+dump_thermo  4000
+run          2000000
+
+# NEMD production; 40,000,000 x 0.25 fs = 10 ns.
+# heat_lan uses group 1 as source and group 8 as sink, with target temperatures 310 K and 290 K.
+fix          0
+ensemble     heat_lan 300 400 10 1 8
+
+# Group temperatures and thermostat energies. With dt=0.25 fs, this outputs every 1 ps.
+compute      0 40 100 temperature
+
+# SHC settings matched to HNEMD time_step 1 fs + compute_shc 1 1000 0 1000 120.0:
+# NEMD dt = 0.25 fs and sample_interval = 4 gives 1 fs between correlation points
+# and a maximum correlation time of 1000 x 4 x 0.25 fs = 1 ps.
+compute_shc  4 1000 0 1000 120.0 group 0 4
+
+dump_thermo  4000
+run          16000000
